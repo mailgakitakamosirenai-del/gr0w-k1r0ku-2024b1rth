@@ -509,6 +509,20 @@ if(BOOT.secretUrl || BOOT.secret || BOOT.name){
   save(K_CFG, cfg);   // 保存できる端末なら、次回からはリンクに付けなくても済む
 }
 
+/**
+ * 保存先URLの手当て。
+ * 配布用リンク全体（自分のサイトのURL＋#s=…）が保存されてしまっていることがあるので、
+ * その中から Apps Script のURL（末尾 /exec）だけを取り出して置き換える。
+ */
+(function fixStoredUrl(){
+  if(!cfg.url) return;
+  const clean = extractExecUrl(cfg.url);
+  if(clean && clean !== cfg.url){
+    cfg.url = clean;
+    save(K_CFG, cfg);
+  }
+})();
+
 diary.forEach(function(d){
   if(d.updatedAt == null) d.updatedAt = d.ts;
   if(d.deleted == null) d.deleted = false;
