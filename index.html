@@ -186,6 +186,20 @@
   .guide b{color:var(--text)}
   .guide ol{margin:10px 0 0; padding-left:22px}
 
+  /* ---- 未接続のお知らせ ---- */
+  .notice{
+    background:color-mix(in srgb, var(--accent) 10%, var(--card));
+    border:1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+    border-radius:var(--radius); padding:16px; margin-bottom:18px;
+  }
+  .notice b{display:block; font-size:15px; font-weight:800; margin-bottom:6px}
+  .notice p{margin:0; font-size:13px; color:var(--sub); line-height:1.8}
+  .notice button{
+    width:100%; margin-top:12px; padding:12px; border-radius:12px; border:0;
+    background:var(--accent); color:#fff; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit;
+  }
+  .notice button:active{opacity:.8}
+
   nav.tabbar{
     position:fixed; left:0; right:0; bottom:0; z-index:30;
     display:flex; background:color-mix(in srgb, var(--bg) 92%, transparent);
@@ -259,6 +273,7 @@
 <main>
   <!-- ========== 記録タブ ========== -->
   <section class="view" id="view-record">
+    <div id="notice"></div>
     <div id="hero"></div>
     <h2 class="sec">タップして記録</h2>
     <div class="grid" id="btnGrid"></div>
@@ -741,6 +756,19 @@ let syncing = false, syncError = null, lastSyncAt = 0, syncTimer = null;
 const REC_FIELDS = ['id','type','ts','memo','by','updatedAt','deleted'];
 const DIA_FIELDS = ['id','ts','title','body','album','by','updatedAt','deleted'];
 
+/**
+ * 貼り付けられた文字列から、Apps Script のウェブアプリURL（末尾 /exec）を取り出す。
+ * リンク全体（#s=... の形）を貼られても拾えるようにしておく。
+ */
+function extractExecUrl(text){
+  const s = String(text || '').trim();
+  const m = s.match(/https:\/\/script\.google\.com\/[^\s"'<>&]*\/exec/);
+  if(m) return m[0];
+  // 独自ドメインなどに置いている場合も一応許す
+  const g = s.match(/https:\/\/[^\s"'<>&]*\/exec/);
+  return g ? g[0] : null;
+}
+
 function syncEnabled(){ return !!(inGas || cfg.url); }
 function pendingCount(){
   return records.filter(function(r){ return r.dirty; }).length +
@@ -907,13 +935,30 @@ function renderSyncPanel(msg, kind){
     host.appendChild(s);
   }else{
     const f1 = el('div');
-    f1.appendChild(el('label', null, '共有URL（Apps Script のウェブアプリURL）'));
+    f1.appendChild(el('label', null, '記録の保存先（Apps Script のウェブアプリURL）'));
     const i1 = document.createElement('input');
     i1.id = 'cfgUrl'; i1.type = 'url'; i1.placeholder = 'https://script.google.com/macros/s/.../exec';
     i1.value = cfg.url || '';
     f1.appendChild(i1);
-    host.appendChild(f1);
 
+    const paste = el('button','mini','クリップボードから貼り付け');
+    paste.type = 'button'; paste.style.marginTop = '8px';
+    paste.addEventListener('click', function(){
+      if(!navigator.clipboard || !navigator.clipboard.readText){
+        showToast('このブラウザでは自動貼り付けできません'); return;
+      }
+      navigator.clipboard.readText().then(function(t){
+        const u = extractExecUrl(t || '');
+        if(!u){ showToast('コピーされているのは保存先URLではないようです'); return; }
+        i1.value = u; showToast('貼り付けました');
+      }).catch(function(){ showToast('欄を長押しして貼り付けてください'); });
+    });
+    f1.appendChild(paste);
+
+    f1.appendChild(el('p','hint',
+      '末尾が /exec のURLです。以前ご家族に配っていたURLと同じものです。' +
+      'わからなくなった場合は、Apps Script の［デプロイ］→［デプロイを管理］に表示されています。'));
+    host.appendChild(f1);
   }
 
   // 合言葉（サーバー側で SECRET を設定した場合に必要。共有URLで開いた場合も入力できます）
@@ -936,7 +981,21 @@ function renderSyncPanel(msg, kind){
   const saveBtn = el('button','btn gap12','保存して同期する');
   saveBtn.type = 'button';
   saveBtn.addEventListener('click', function(){
-    if(!inGas) cfg.url = $('#cfgUrl').value.trim();
+    if(!inGas){
+      const raw = $('#cfgUrl').value.trim();
+      if(raw){
+        const u = extractExecUrl(raw);
+        if(!u){
+          renderSyncPanel(
+            '⚠ 保存先URLの形が違うようです。Apps Script の［デプロイ］→［デプロイを管理］に出る、' +
+            '末尾が /exec のURLを貼り付けてください。（このアプリ自身のURLではありません）', 'err');
+          return;
+        }
+        cfg.url = u;
+      }else{
+        cfg.url = '';
+      }
+    }
     cfg.secret = $('#cfgSecret').value.trim();
     cfg.name = $('#cfgName').value.trim();
     saveCfg();
@@ -1222,8 +1281,32 @@ function renderDiary(){
   });
 }
 
+function renderNotice(){
+  const host = $('#notice');
+  host.innerHTML = '';
+  if(syncEnabled()) return;
+
+  const box = el('div','notice');
+  box.appendChild(el('b', null, 'まだ家族と共有していません'));
+  box.appendChild(el('p', null,
+    'このままでも記録はできますが、この端末の中だけに保存され、過去の記録も表示されません。' +
+    '設定で「記録の保存先」を教えると、これまでの記録と日記がすべて戻ってきます。'));
+  const btn = el('button', null, '保存先を設定する');
+  btn.type = 'button';
+  btn.addEventListener('click', function(){
+    openSettings();
+    setTimeout(function(){
+      const box2 = document.querySelector('#cfgUrl');
+      if(box2){ box2.scrollIntoView({block:'center'}); box2.focus(); }
+    }, 60);
+  });
+  box.appendChild(btn);
+  host.appendChild(box);
+}
+
 function renderAll(){
-  renderHero(); renderButtons(); renderStats(); renderChips(); renderHistory(); renderDiary(); renderSyncBadge();
+  renderNotice(); renderHero(); renderButtons(); renderStats();
+  renderChips(); renderHistory(); renderDiary(); renderSyncBadge();
 }
 
 /* ==================== 記録の追加・編集 ==================== */
