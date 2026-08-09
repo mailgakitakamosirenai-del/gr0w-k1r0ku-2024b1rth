@@ -348,8 +348,8 @@
 
 <nav class="tabbar">
   <button data-tab="record" class="on"><span class="ic">📝</span>記録</button>
-  <button data-tab="diary"><span class="ic">📔</span>日記</button>
   <button data-tab="history"><span class="ic">📋</span>履歴</button>
+  <button data-tab="diary"><span class="ic">📔</span>日記</button>
   <button data-tab="settings"><span class="ic">⚙️</span>設定</button>
 </nav>
 
@@ -439,6 +439,10 @@ const DEFAULT_TYPES = [
   {id:'wake',  label:'起きた',   emoji:'☀️', on:false},
   {id:'temp',  label:'体温',     emoji:'🌡️', on:false},
   {id:'med',   label:'くすり',   emoji:'💊', on:false},
+  {id:'breath',label:'息ごらえ', emoji:'😣', on:false},
+  {id:'bath',  label:'お風呂',   emoji:'🛁', on:false},
+  {id:'spo2',  label:'SPO2',    emoji:'〰️', on:false},
+  {id:'cut',   label:'散髪',     emoji:'✂️', on:false},
 ];
 
 function load(key, fallback){
