@@ -186,6 +186,24 @@
   .guide b{color:var(--text)}
   .guide ol{margin:10px 0 0; padding-left:22px}
 
+  /* ---- 月のみだし（開閉） ---- */
+  .mhead{
+    display:block; width:100%; text-align:left; font-family:inherit; color:inherit;
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:13px 15px; margin-bottom:10px; cursor:pointer;
+  }
+  .mhead:active{background:var(--bg)}
+  .mhead.open{margin-bottom:12px}
+  .mtop{display:flex; align-items:center; gap:10px}
+  .mchev{color:var(--sub); font-size:11px; width:11px; flex:0 0 auto}
+  .mtitle{font-size:15px; font-weight:800; letter-spacing:.01em}
+  .mcount{margin-left:auto; font-size:12px; color:var(--sub); font-variant-numeric:tabular-nums; flex:0 0 auto}
+  .mkeys{
+    margin-top:7px; padding-left:21px; font-size:12px; color:var(--sub); line-height:1.75;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  }
+  .mbody{margin-bottom:18px}
+
   /* ---- 未接続のお知らせ ---- */
   .notice{
     background:color-mix(in srgb, var(--accent) 10%, var(--card));
@@ -1248,6 +1266,39 @@ function renderSettings(){
   });
 }
 
+/* ---- 日記の月まとめ ---- */
+let openMonths = null;        // {'2026-08': true, …} 開いている月
+
+function monthKey(ts){ const d = new Date(ts); return d.getFullYear() + '-' + pad(d.getMonth()+1); }
+function monthLabel(key){
+  const p = key.split('-');
+  return p[0] + '年' + (+p[1]) + '月';
+}
+
+/**
+ * 閉じている月に並べる「その月のことば」。
+ * 日記のタイトルをそのまま使う（自動抽出より的確なため）。
+ * タイトルが無い記事は、本文の冒頭で代用する。
+ */
+function monthKeywords(items){
+  const seen = {}, words = [];
+  items.forEach(function(d){
+    let w = (d.title || '').trim();
+    if(!w){
+      const body = (d.body || '').replace(/\s+/g, ' ').trim();
+      w = body.slice(0, 12) + (body.length > 12 ? '…' : '');
+    }
+    if(!w || seen[w]) return;
+    seen[w] = true;
+    words.push(w);
+  });
+  if(!words.length) return '';
+  const MAX = 8;
+  let text = words.slice(0, MAX).join('　･　');
+  if(words.length > MAX) text += ' ほか' + (words.length - MAX) + '件';
+  return text;
+}
+
 function renderDiary(){
   const host = $('#diaryList');
   host.innerHTML = '';
@@ -1276,28 +1327,72 @@ function renderDiary(){
     return;
   }
 
+  // 月ごとにまとめる（新しい月が上）
+  const groups = [], byKey = {};
   list.forEach(function(d){
-    const card = el('button','dcard');
-    card.type = 'button';
-    const dt = new Date(d.ts);
-    card.appendChild(el('div','dt', dt.getFullYear() + '年' + (dt.getMonth()+1) + '月' + dt.getDate() + '日(' + WD[dt.getDay()] + ')'));
-    if(d.title) card.appendChild(el('div','tt', d.title));
-    if(d.body) card.appendChild(el('div','bd', d.body));
-
-    const ft = el('div','ft');
-    if(d.album){
-      const a = document.createElement('a');
-      a.className = 'album'; a.href = d.album; a.target = '_blank'; a.rel = 'noopener';
-      a.textContent = '📷 写真・動画を見る';
-      a.addEventListener('click', function(ev){ ev.stopPropagation(); });
-      ft.appendChild(a);
-    }
-    if(d.by) ft.appendChild(el('span','who', d.by));
-    if(d.album || d.by) card.appendChild(ft);
-
-    card.addEventListener('click', function(){ openDiary(d.id); });
-    host.appendChild(card);
+    const k = monthKey(d.ts);
+    if(!byKey[k]){ byKey[k] = {key:k, items:[]}; groups.push(byKey[k]); }
+    byKey[k].items.push(d);
   });
+
+  // 初回は最新の月だけ開いておく
+  if(openMonths === null){
+    openMonths = {};
+    if(groups.length) openMonths[groups[0].key] = true;
+  }
+
+  groups.forEach(function(g){
+    const open = q ? true : !!openMonths[g.key];   // 検索中はすべて開く
+
+    const head = el('button','mhead' + (open ? ' open' : ''));
+    head.type = 'button';
+    const top = el('div','mtop');
+    top.appendChild(el('span','mchev', open ? '▾' : '▸'));
+    top.appendChild(el('span','mtitle', monthLabel(g.key)));
+    top.appendChild(el('span','mcount', g.items.length + '件'));
+    head.appendChild(top);
+
+    if(!open){
+      const kw = monthKeywords(g.items);
+      if(kw) head.appendChild(el('div','mkeys', kw));
+    }
+    head.addEventListener('click', function(){
+      if(q) return;                                // 検索中は開閉しない
+      openMonths[g.key] = !openMonths[g.key];
+      renderDiary();
+    });
+    host.appendChild(head);
+
+    if(open){
+      const wrap = el('div','mbody');
+      g.items.forEach(function(d){ wrap.appendChild(diaryCard(d)); });
+      host.appendChild(wrap);
+    }
+  });
+}
+
+/** 日記1件のカード */
+function diaryCard(d){
+  const card = el('button','dcard');
+  card.type = 'button';
+  const dt = new Date(d.ts);
+  card.appendChild(el('div','dt', (dt.getMonth()+1) + '月' + dt.getDate() + '日(' + WD[dt.getDay()] + ')'));
+  if(d.title) card.appendChild(el('div','tt', d.title));
+  if(d.body) card.appendChild(el('div','bd', d.body));
+
+  const ft = el('div','ft');
+  if(d.album){
+    const a = document.createElement('a');
+    a.className = 'album'; a.href = d.album; a.target = '_blank'; a.rel = 'noopener';
+    a.textContent = '📷 写真・動画を見る';
+    a.addEventListener('click', function(ev){ ev.stopPropagation(); });
+    ft.appendChild(a);
+  }
+  if(d.by) ft.appendChild(el('span','who', d.by));
+  if(d.album || d.by) card.appendChild(ft);
+
+  card.addEventListener('click', function(){ openDiary(d.id); });
+  return card;
 }
 
 function renderNotice(){
@@ -1463,6 +1558,7 @@ $('#dSave').addEventListener('click', function(){
       by:cfg.name || '', updatedAt:Date.now(), deleted:false, dirty:true
     });
   }
+  if(openMonths) openMonths[monthKey(ts)] = true;   // 書いた月は開いた状態にする
   persistDiary(); closeDiary(); renderDiary(); renderSyncBadge(); scheduleSync();
   showToast('保存しました');
 });
