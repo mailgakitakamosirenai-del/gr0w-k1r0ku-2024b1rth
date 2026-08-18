@@ -10,7 +10,7 @@
  * ★ index.html を更新したら、下の VERSION の数字を1つ増やしてください。
  *   増やさないと、端末に残った古い画面が使われ続けます。
  */
-const VERSION = 'v7';
+const VERSION = 'v8';
 const CACHE = 'ikuji-' + VERSION;
 
 const SHELL = [
