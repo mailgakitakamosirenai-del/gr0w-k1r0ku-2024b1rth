@@ -218,6 +218,60 @@
   }
   .notice button:active{opacity:.8}
 
+  /* ---- まとめタブ ---- */
+  /*
+    グラフの色は validate_palette.js（色覚多様性・背景コントラストの検証）を通した値です。
+    明るい画面／暗い画面それぞれで、4つの検査すべてに合格しています。
+    色を変えるときは、必ず同じ検証をやり直してください。
+  */
+  :root{
+    --c-sleep:#5262D8;   /* ねむっている時間 */
+    --c-light:#B0590C;   /* 外光 */
+    --c-poop:#0A8264;    /* うんち・浣腸 */
+    --grid:#e6ded1;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --c-sleep:#727FE8;
+      --c-light:#C08018;
+      --c-poop:#0FAE72;
+      --grid:#3a3531;
+    }
+  }
+  .tiles{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:16px}
+  .tile{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:14px;
+  }
+  .tile .tl{font-size:11px; color:var(--sub); font-weight:700; letter-spacing:.04em}
+  .tile .tv{font-size:26px; font-weight:800; letter-spacing:-.02em; font-variant-numeric:tabular-nums; margin-top:4px; line-height:1.2}
+  .tile .tv small{font-size:14px; font-weight:700; color:var(--sub); margin-left:2px}
+  .tile .ts{font-size:11px; color:var(--sub); margin-top:4px; line-height:1.5}
+  .chartcard{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:14px 12px 12px; margin-bottom:14px;
+  }
+  .chartcard h3{margin:0 0 2px; font-size:14px; font-weight:800; padding:0 2px}
+  .chartcard .cap{font-size:11px; color:var(--sub); margin:0 2px 12px; line-height:1.7}
+  .legend{display:flex; flex-wrap:wrap; gap:12px; padding:10px 2px 0; margin-top:8px; border-top:1px dashed var(--line)}
+  .legend div{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--sub); font-weight:700}
+  .legend svg{flex:0 0 auto; display:block}
+  .tipbox{
+    font-size:12px; color:var(--text); background:var(--bg); border:1px solid var(--line);
+    border-radius:10px; padding:9px 11px; margin:10px 2px 0; line-height:1.7; min-height:20px;
+  }
+  .tipbox.idle{color:var(--sub)}
+  .tbl{width:100%; border-collapse:collapse; font-size:12px; font-variant-numeric:tabular-nums}
+  .tbl th,.tbl td{padding:7px 6px; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap}
+  .tbl th{color:var(--sub); font-size:10px; font-weight:700; letter-spacing:.03em}
+  .tbl th:first-child,.tbl td:first-child{text-align:left}
+  .tblwrap{overflow-x:auto; -webkit-overflow-scrolling:touch}
+  .warnbox{
+    font-size:12px; line-height:1.8; color:var(--text); border-radius:10px; padding:11px 13px; margin-bottom:14px;
+    background:color-mix(in srgb, var(--accent) 10%, var(--card));
+    border:1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+  }
+
   nav.tabbar{
     position:fixed; left:0; right:0; bottom:0; z-index:30;
     display:flex; background:color-mix(in srgb, var(--bg) 92%, transparent);
@@ -262,6 +316,25 @@
   .field label{display:block; font-size:12px; font-weight:700; color:var(--sub); margin-bottom:6px}
   .row2{display:flex; gap:10px; margin-top:6px}
   .row2>*{flex:1}
+
+  /* ---- 記録シートの追加項目 ---- */
+  .opts{display:flex; flex-wrap:wrap; gap:8px}
+  .opt{
+    border:1px solid var(--line); background:var(--card); color:var(--sub);
+    border-radius:999px; padding:8px 14px; font-size:14px; font-weight:700;
+    cursor:pointer; font-family:inherit; min-height:40px;
+  }
+  .opt.on{background:var(--accent); border-color:var(--accent); color:#fff}
+  .opts.bristol .opt{flex:1; min-width:40px; padding:8px 4px; text-align:center}
+  .bhint{font-size:11px; color:var(--sub); margin:7px 2px 0; line-height:1.7}
+  .vrow{display:flex; align-items:center; gap:10px}
+  .vrow input{flex:1}
+  .vrow .unit{font-size:14px; color:var(--sub); font-weight:700; flex:0 0 auto}
+  .item .tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:5px}
+  .item .tag{
+    font-size:11px; font-weight:700; color:var(--sub);
+    border:1px solid var(--line); border-radius:6px; padding:2px 7px; white-space:nowrap;
+  }
   #toast{
     position:fixed; left:50%; bottom:calc(84px + env(safe-area-inset-bottom)); transform:translateX(-50%);
     z-index:60; background:var(--text); color:var(--bg); border-radius:999px;
@@ -313,6 +386,12 @@
     <div id="historyList"></div>
   </section>
 
+  <!-- ========== まとめタブ ========== -->
+  <section class="view" id="view-summary" hidden>
+    <div class="chips" id="rangeChips"></div>
+    <div id="summaryBody"></div>
+  </section>
+
   <!-- ========== 設定タブ ========== -->
   <section class="view" id="view-settings" hidden>
 
@@ -357,6 +436,11 @@
       <p class="hint" style="margin-top:0">
         ・ボタンを押すと「今」の時刻で記録されます。直後に出る「編集」から時刻やメモを直せます。<br>
         ・履歴の項目をタップすると、日時・メモの修正や削除ができます。<br>
+        ・種類によっては、編集画面に「便のかたさ」「量」「ようす」などの欄が出ます。<br>
+        ・まとめタブの睡眠の集計には 😴ねんね と ☀️起きた が要ります。上の欄で表示にしてください。
+        寝つくまでの時間を出すには 🛏️ふとんへ、体内時計の手がかりには 🌞外光 も記録してください。<br>
+        ・まとめタブでは、正午から翌日の正午までを「1日」として数えます。
+        深夜に寝て翌朝に起きるリズムでも、ひと晩がふたつに割れないようにするためです。<br>
         ・電波がなくても記録できます。つながり次第、自動で家族に送信されます。<br>
         ・ブラウザのメニューから「ホーム画面に追加」すると、アプリのように起動できます。
       </p>
@@ -367,6 +451,7 @@
 <nav class="tabbar">
   <button data-tab="record" class="on"><span class="ic">📝</span>記録</button>
   <button data-tab="history"><span class="ic">📋</span>履歴</button>
+  <button data-tab="summary"><span class="ic">📊</span>まとめ</button>
   <button data-tab="diary"><span class="ic">📔</span>日記</button>
   <button data-tab="settings"><span class="ic">⚙️</span>設定</button>
 </nav>
@@ -390,9 +475,10 @@
         <button class="mini" data-shift="60">＋1時間</button>
       </div>
     </div>
+    <div id="mAttrs"></div>
     <div class="field">
       <label for="mMemo">メモ</label>
-      <textarea id="mMemo" placeholder="かたさ、量、機嫌、薬など"></textarea>
+      <textarea id="mMemo" placeholder="上の項目に当てはまらないこと、気になったようすなど"></textarea>
     </div>
     <button class="btn" id="mSave">保存する</button>
     <div class="row2" style="margin-top:10px">
@@ -462,7 +548,41 @@ const DEFAULT_TYPES = [
   {id:'spo2',  label:'SPO2',    emoji:'〰️', on:false},
   {id:'cut',   label:'散髪',     emoji:'✂️', on:false},
   {id:'ngtube',label:'胃管交換', emoji:'🧪', on:false},
+  // ---- 睡眠リズムを見るために追加したボタン ----
+  {id:'bedin', label:'ふとんへ', emoji:'🛏️', on:false},
+  {id:'light', label:'外光',     emoji:'🌞', on:false},
+  {id:'seizure',label:'けいれん', emoji:'⚡', on:false},
 ];
+
+/**
+ * 種類ごとに、追加で記録できる項目。
+ * ここに書いた項目だけが編集画面に出ます。増やしたいときはこの表に足してください。
+ *
+ *   bristol … ブリストルスケール（1〜7）のボタン
+ *   amount / state / place … 選択肢のボタン（もう一度押すと解除）
+ *   value   … 数値の入力欄
+ */
+const ATTR_SPEC = {
+  poop:   {bristol:true,
+           amount:['少','中','多'],
+           state:['楽そう','いきむ','苦しがる','泣く']},
+  enema:  {amount:['少','中','多'],
+           state:['楽そう','いきむ','苦しがる','泣く']},
+  sleep:  {state:['すんなり','ぐずる','ハイテンション','体を反らす']},
+  wake:   {state:['機嫌よい','うなる','泣く','体を反らす','汗をかいた']},
+  light:  {place:['屋外','窓ぎわ','室内'],
+           value:{label:'浴びた時間', unit:'分', step:5, placeholder:'30'}},
+  temp:   {value:{label:'体温', unit:'℃', step:0.1, placeholder:'36.8'}},
+  spo2:   {value:{label:'SpO2', unit:'%', step:1, placeholder:'97'}},
+  breath: {value:{label:'長さ', unit:'秒', step:1, placeholder:'20'}},
+  seizure:{value:{label:'長さ', unit:'秒', step:1, placeholder:'30'},
+           state:['ぴくつき','体を反らす','目が寄る','ぐったり']},
+  meal:   {amount:['少','中','多']},
+  milk:   {value:{label:'量', unit:'mL', step:10, placeholder:'160'}},
+};
+
+/** 後から足した属性の列。並び順は Code.gs の SPECS.records.fields と合わせること */
+const ATTR_FIELDS = ['bristol','amount','state','place','value'];
 
 function load(key, fallback){
   try{
@@ -495,6 +615,8 @@ records.forEach(function(r){
   if(r.updatedAt == null) r.updatedAt = r.ts;
   if(r.deleted == null) r.deleted = false;
   if(r.by == null) r.by = '';
+  // 属性の列を後から足したので、古い記録には空で補っておく
+  ATTR_FIELDS.forEach(function(f){ if(r[f] == null) r[f] = ''; });
 });
 /**
  * サーバーがURLの ?k= / ?who= から渡してくる値。
@@ -790,7 +912,7 @@ const inGas = (typeof google !== 'undefined' && google.script && google.script.r
 let syncing = false, syncError = null, lastSyncAt = 0, syncTimer = null;
 
 // 同期するデータの種類（サーバーの SPECS と対応）
-const REC_FIELDS = ['id','type','ts','memo','by','updatedAt','deleted'];
+const REC_FIELDS = ['id','type','ts','memo','by','updatedAt','deleted'].concat(ATTR_FIELDS);
 const DIA_FIELDS = ['id','ts','title','body','album','by','updatedAt','deleted'];
 
 /**
@@ -1157,6 +1279,21 @@ function renderStats(){
   if(!any) host.appendChild(el('div','empty','記録するとここに間隔が出ます'));
 }
 
+/** 履歴に出す、追加項目の小さなラベル */
+function attrTags(r){
+  const spec = ATTR_SPEC[r.type] || {};
+  const out = [];
+  const b = Number(r.bristol);
+  if(b >= 1 && b <= 7) out.push('ブリストル ' + b + '（' + BRISTOL_HINT[b] + '）');
+  if(r.amount) out.push('量 ' + r.amount);
+  if(r.place)  out.push(r.place);
+  if(r.value !== '' && r.value != null && spec.value){
+    out.push(spec.value.label + ' ' + r.value + spec.value.unit);
+  }
+  if(r.state) out.push(r.state);
+  return out;
+}
+
 function renderChips(){
   const host = $('#chips');
   host.innerHTML = '';
@@ -1215,6 +1352,12 @@ function renderHistory(){
     const ttl = el('div','ttl', t.label);
     if(r.by) ttl.appendChild(el('i', null, r.by));
     body.appendChild(ttl);
+    const tags = attrTags(r);
+    if(tags.length){
+      const tb = el('div','tags');
+      tags.forEach(function(x){ tb.appendChild(el('span','tag', x)); });
+      body.appendChild(tb);
+    }
     if(r.memo) body.appendChild(el('div','memo', r.memo));
     if(prevSame[r.id] != null) body.appendChild(el('div','gap','前回の' + t.label + 'から ' + fmtDur(prevSame[r.id])));
     item.appendChild(body);
@@ -1418,9 +1561,421 @@ function renderNotice(){
   host.appendChild(box);
 }
 
+/* ==================== まとめ（睡眠リズムの集計） ==================== */
+/*
+ * 1日の区切りを「正午」にしています。
+ * 深夜1時に寝て翌朝11時に起きる、というリズムのとき、暦日の0時で切ると
+ * ひと晩の睡眠が2日に割れて集計が壊れるためです。
+ * 正午区切りなら、午後の昼寝からその夜、翌朝までが「1日」にまとまります。
+ */
+const HOUR = 3600000;
+const DAY_ANCHOR = 12;          // 何時で1日を区切るか
+const MAX_SPAN = 20 * HOUR;     // これより長い睡眠は「起きた」の付け忘れとみなす
+const NIGHT_FROM = 6 * HOUR;    // 区切り（12時）から6時間後 ＝ 18時。ここ以降を「夜」とみなす
+let sumRange = 14;              // まとめタブに出す日数
+
+function shiftDays(ts, n){ const d = new Date(ts); d.setDate(d.getDate() + n); return d.getTime(); }
+
+/** その時刻が属する「1日」の始まり（正午）を返す */
+function dayAnchor(ts){
+  const d = new Date(ts);
+  const a = new Date(d.getFullYear(), d.getMonth(), d.getDate(), DAY_ANCHOR, 0, 0, 0);
+  if(d.getTime() < a.getTime()) a.setDate(a.getDate() - 1);
+  return a.getTime();
+}
+
+/** 「ねんね」と「起きた」を組にして、眠っていた区間の一覧をつくる */
+function sleepSpans(){
+  const evs = live()
+    .filter(function(r){ return r.type === 'sleep' || r.type === 'wake'; })
+    .sort(function(a,b){ return a.ts - b.ts; });
+
+  const spans = [];
+  let open = null;
+  evs.forEach(function(r){
+    if(r.type === 'sleep'){ if(!open) open = r; }        // 「ねんね」が続いたら最初のものを採る
+    else if(open){ spans.push({from:open.ts, to:r.ts}); open = null; }
+  });
+  if(open) spans.push({from:open.ts, to:Date.now(), running:true});   // いま眠っている最中
+
+  return spans.filter(function(s){ return s.to > s.from; })
+              .map(function(s){ s.broken = (s.to - s.from) > MAX_SPAN; return s; });
+}
+
+/** 直近 nDays 日ぶんの集計。古い順に返す */
+function summarize(nDays){
+  const spans = sleepSpans();
+  const recs = live();
+  const latest = dayAnchor(Date.now());
+  const out = [];
+
+  for(let i = nDays - 1; i >= 0; i--){
+    const start = shiftDays(latest, -i);
+    const end = shiftDays(start, 1);
+    const inDay = function(r){ return r.ts >= start && r.ts < end; };
+
+    const all = spans.filter(function(s){ return s.from >= start && s.from < end; });
+    const good = all.filter(function(s){ return !s.broken; });
+
+    const total   = good.reduce(function(a,s){ return a + (s.to - s.from); }, 0);
+    const longest = good.reduce(function(a,s){ return Math.max(a, s.to - s.from); }, 0);
+
+    const night = good.filter(function(s){ return s.from >= start + NIGHT_FROM; });
+    const firstNight = night.length ? night[0] : null;
+    const lastEnd = good.reduce(function(a,s){ return Math.max(a, s.to); }, 0);
+    const mid = (firstNight && lastEnd > firstNight.from) ? (firstNight.from + lastEnd) / 2 : null;
+
+    // 寝つくまでの時間。「ふとんへ」が入眠の6時間前までにあれば計算する
+    let latency = null;
+    if(firstNight){
+      const beds = recs.filter(function(r){
+        return r.type === 'bedin' && r.ts <= firstNight.from && r.ts > firstNight.from - 6 * HOUR;
+      }).sort(function(a,b){ return b.ts - a.ts; });
+      if(beds.length) latency = firstNight.from - beds[0].ts;
+    }
+
+    const poops  = recs.filter(function(r){ return r.type === 'poop'  && inDay(r); });
+    const enemas = recs.filter(function(r){ return r.type === 'enema' && inDay(r); });
+    // 直前3時間に浣腸がなければ「自然に出た」とみなす
+    const natural = poops.filter(function(p){
+      return !recs.some(function(e){ return e.type === 'enema' && e.ts <= p.ts && e.ts > p.ts - 3 * HOUR; });
+    });
+    const bs = poops.map(function(p){ return Number(p.bristol); }).filter(function(v){ return v >= 1 && v <= 7; });
+
+    const lights = recs.filter(function(r){ return r.type === 'light' && inDay(r); });
+    const sumMin = function(list){ return list.reduce(function(a,r){ return a + (Number(r.value) || 0); }, 0); };
+
+    out.push({
+      start:start, end:end,
+      spans:good, broken:all.length - good.length,
+      total:total, longest:longest, blocks:good.length,
+      mid:mid, latency:latency,
+      poops:poops, enemas:enemas, natural:natural.length,
+      bristol: bs.length ? bs.reduce(function(a,b){ return a + b; }, 0) / bs.length : null,
+      lights:lights,
+      lightMin: sumMin(lights),
+      outMin: sumMin(lights.filter(function(r){ return r.place === '屋外' || r.place === '窓ぎわ'; }))
+    });
+  }
+  return out;
+}
+
+/* ---------- 表示のための小道具 ---------- */
+const SVGNS = 'http://www.w3.org/2000/svg';
+function sv(tag, attrs){
+  const e = document.createElementNS(SVGNS, tag);
+  for(const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+function fmtHM(ms){
+  if(ms == null) return '－';
+  const m = Math.round(ms / 60000);
+  const h = Math.floor(m / 60), mm = m % 60;
+  return h ? h + '時間' + (mm ? mm + '分' : '') : mm + '分';
+}
+/** 正午からの経過ミリ秒を、時計の表示に直す */
+function fmtClockOffset(off){
+  if(off == null) return '－';
+  let mins = Math.round(off / 60000) + DAY_ANCHOR * 60;
+  mins = ((mins % 1440) + 1440) % 1440;
+  return pad(Math.floor(mins / 60)) + ':' + pad(mins % 60);
+}
+function mean(list){
+  const v = list.filter(function(x){ return x != null; });
+  return v.length ? v.reduce(function(a,b){ return a + b; }, 0) / v.length : null;
+}
+
+function renderRangeChips(){
+  const host = $('#rangeChips');
+  host.innerHTML = '';
+  [7, 14, 30].forEach(function(n){
+    const c = el('button','chip' + (sumRange === n ? ' on' : ''), '直近' + n + '日');
+    c.type = 'button';
+    c.addEventListener('click', function(){ sumRange = n; renderRangeChips(); renderSummary(); });
+    host.appendChild(c);
+  });
+}
+
+function renderSummary(){
+  const host = $('#summaryBody');
+  if(!host) return;
+  host.innerHTML = '';
+
+  const days = summarize(sumRange);
+  const withSleep = days.filter(function(d){ return d.blocks > 0; });
+
+  if(!withSleep.length){
+    const g = el('div','guide');
+    g.appendChild(el('b', null, 'まだ睡眠の記録がありません'));
+    const p = el('p', null, '設定タブの「ボタンの表示／非表示」で 😴 ねんね ／ ☀️ 起きた ／ 🛏️ ふとんへ ／ 🌞 外光 を表示にしてください。'
+      + '眠りはじめに「ねんね」、目が覚めたら「起きた」を押すと、ここに眠りの形が出てきます。');
+    p.style.margin = '10px 0 0';
+    g.appendChild(p);
+    host.appendChild(g);
+    return;
+  }
+
+  const brokenTotal = days.reduce(function(a,d){ return a + d.broken; }, 0);
+  if(brokenTotal){
+    host.appendChild(el('div','warnbox',
+      '⚠ 20時間を超える睡眠が ' + brokenTotal + '件あり、集計から外しました。'
+      + '「起きた」の記録が抜けている可能性があります。履歴タブから足すと、この期間も計算に入ります。'));
+  }
+
+  /* ---- 数字のまとめ ---- */
+  const tiles = el('div','tiles');
+  const tile = function(label, value, unit, sub){
+    const t = el('div','tile');
+    t.appendChild(el('div','tl', label));
+    const v = el('div','tv', value);
+    if(unit) v.appendChild(el('small', null, unit));
+    t.appendChild(v);
+    if(sub) t.appendChild(el('div','ts', sub));
+    return t;
+  };
+
+  const avgTotal = mean(withSleep.map(function(d){ return d.total; }));
+  tiles.appendChild(tile('1日の睡眠時間（平均）', fmtHM(avgTotal), '',
+    '記録のあった ' + withSleep.length + '日ぶん。2歳の一般的な目安は昼寝を含めて11〜14時間です。'));
+
+  const mids = withSleep.filter(function(d){ return d.mid != null; });
+  const midOffsets = mids.map(function(d){ return d.mid - d.start; });
+  let midSub = '入眠から最終覚醒までの真ん中。体内時計の位置を見る目安です。';
+  if(mids.length >= 4){
+    const half = Math.floor(mids.length / 2);
+    const early = mean(midOffsets.slice(0, half));
+    const late  = mean(midOffsets.slice(mids.length - half));
+    const diff = Math.round((late - early) / 60000);
+    if(Math.abs(diff) >= 10){
+      midSub = (diff < 0 ? '期間のはじめより ' + Math.abs(diff) + '分 前倒しになっています。'
+                         : '期間のはじめより ' + diff + '分 後ろにずれています。');
+    }else{
+      midSub = '期間を通してほぼ動いていません。';
+    }
+  }
+  tiles.appendChild(tile('睡眠中央時刻（平均）', fmtClockOffset(mean(midOffsets)), '', midSub));
+
+  const lats = withSleep.map(function(d){ return d.latency; }).filter(function(v){ return v != null; });
+  tiles.appendChild(tile('夜、寝つくまで', lats.length ? fmtHM(mean(lats)) : '－', '',
+    lats.length ? lats.length + '日ぶんの平均です。' : '「ふとんへ」を記録すると出ます。'));
+
+  const natDays = days.filter(function(d){ return d.natural > 0; }).length;
+  const eneDays = days.filter(function(d){ return d.enemas.length > 0; }).length;
+  tiles.appendChild(tile('自然に出た日', String(natDays), '日',
+    days.length + '日のうち。浣腸を使った日は ' + eneDays + '日です。'));
+  host.appendChild(tiles);
+
+  /* ---- 眠りの帯グラフ（アクトグラム） ---- */
+  host.appendChild(actogram(days));
+
+  /* ---- 表 ---- */
+  host.appendChild(dayTable(days));
+}
+
+/**
+ * 1日1本の帯で、24時間のどこを眠っていたかを描く。
+ * 横軸は正午から翌正午まで。日ごとに下へ積むので、
+ * 眠る時間帯が少しずつ動いていれば、帯の傾きとして見えます。
+ */
+function actogram(days){
+  const card = el('div','chartcard');
+  card.appendChild(el('h3', null, '眠っていた時間帯'));
+  card.appendChild(el('p','cap','横は正午から翌日の正午まで。左の日付は、その夜が始まった日です'
+    + '（深夜1時の入眠は前日の欄に入ります）。帯や印をタップすると内訳が出ます。'));
+
+  const W = 340, GUT = 40, PAD_R = 6;
+  const PLOT = W - GUT - PAD_R;
+  const PITCH = 24, TOP = 22;
+  const Hgt = TOP + days.length * PITCH + 6;
+
+  const svg = sv('svg', {viewBox:'0 0 ' + W + ' ' + Hgt,
+                         preserveAspectRatio:'xMidYMid meet', role:'img',
+                         'aria-label':'日ごとに、眠っていた時間帯を横帯で示したグラフ'});
+  svg.style.display = 'block';
+  svg.style.width = '100%';
+  svg.style.height = 'auto';
+
+  const x = function(off){ return GUT + Math.max(0, Math.min(1, off / 86400000)) * PLOT; };
+
+  // 目盛り（3時間ごとに線、6時間ごとに数字）
+  for(let h = 0; h <= 24; h += 3){
+    const px = GUT + (h / 24) * PLOT;
+    svg.appendChild(sv('line', {x1:px, y1:TOP - 6, x2:px, y2:TOP + days.length * PITCH,
+                                stroke:'var(--grid)', 'stroke-width':1}));
+    if(h % 6 === 0){
+      // 両端の文字が枠からはみ出さないように、寄せ方を変える
+      const anchor = (h === 0) ? 'start' : (h === 24 ? 'end' : 'middle');
+      const t = sv('text', {x:px, y:TOP - 10, 'text-anchor':anchor,
+                            fill:'var(--sub)', 'font-size':9, 'font-weight':700});
+      t.textContent = ((DAY_ANCHOR + h) % 24) + '時';
+      svg.appendChild(t);
+    }
+  }
+
+  const tip = el('div','tipbox idle','帯をタップすると、その日の内訳が出ます。');
+  const say = function(msg){ tip.textContent = msg; tip.classList.remove('idle'); };
+
+  const midPts = [];
+
+  days.forEach(function(d, i){
+    const top = TOP + i * PITCH;
+    const dt = new Date(d.start);
+
+    const lb = sv('text', {x:GUT - 6, y:top + 13, 'text-anchor':'end',
+                           fill:'var(--sub)', 'font-size':9, 'font-weight':700});
+    lb.textContent = (dt.getMonth() + 1) + '/' + dt.getDate();
+    svg.appendChild(lb);
+
+    // 外光（帯の上のめもり）
+    d.lights.forEach(function(r){
+      const x0 = x(r.ts - d.start);
+      const w = Math.max(4, ((Number(r.value) || 15) * 60000 / 86400000) * PLOT);
+      const rc = sv('rect', {x:x0, y:top, width:w, height:3.5, rx:1.75, fill:'var(--c-light)'});
+      rc.style.cursor = 'pointer';
+      rc.addEventListener('click', function(){
+        say('🌞 ' + fmtTime(r.ts) + ' 外光' + (r.place ? '（' + r.place + '）' : '')
+            + (r.value ? ' ' + r.value + '分' : ''));
+      });
+      svg.appendChild(rc);
+    });
+
+    // 眠っていた区間
+    d.spans.forEach(function(s){
+      const x0 = x(s.from - d.start), x1 = x(Math.min(s.to - d.start, 86400000));
+      const rc = sv('rect', {x:x0, y:top + 4, width:Math.max(1.5, x1 - x0), height:11,
+                             rx:3, fill:'var(--c-sleep)'});
+      rc.style.cursor = 'pointer';
+      rc.addEventListener('click', function(){
+        say('😴 ' + fmtTime(s.from) + ' → ' + fmtTime(s.to) + '（' + fmtHM(s.to - s.from) + '）'
+            + (s.running ? '／いま眠っている最中' : ''));
+      });
+      svg.appendChild(rc);
+      // 日をまたいで続く場合は、次の行の頭にも描く
+      if(s.to - d.start > 86400000){
+        const nx = TOP + (i + 1) * PITCH;
+        if(i + 1 < days.length){
+          svg.appendChild(sv('rect', {x:GUT, y:nx + 4,
+                                      width:Math.max(1.5, x(s.to - d.end) - GUT), height:11,
+                                      rx:3, fill:'var(--c-sleep)', opacity:0.55}));
+        }
+      }
+    });
+
+    // うんち（●）と浣腸（△）。色は同じで、形で見分けます
+    d.poops.forEach(function(r){
+      // 背景色のふちを付けて、浣腸の印と重なっても見分けられるようにする
+      const c = sv('circle', {cx:x(r.ts - d.start), cy:top + 18, r:3, fill:'var(--c-poop)',
+                              stroke:'var(--card)', 'stroke-width':1.4});
+      c.style.cursor = 'pointer';
+      c.addEventListener('click', function(){
+        const b = Number(r.bristol);
+        say('💩 ' + fmtTime(r.ts) + ' うんち'
+            + (b >= 1 && b <= 7 ? '／ブリストル ' + b + '（' + BRISTOL_HINT[b] + '）' : '')
+            + (r.amount ? '／量 ' + r.amount : '') + (r.state ? '／' + r.state : ''));
+      });
+      svg.appendChild(c);
+    });
+    d.enemas.forEach(function(r){
+      const cx = x(r.ts - d.start), cy = top + 18;
+      const p = sv('path', {d:'M' + cx + ' ' + (cy - 3.6) + 'L' + (cx + 3.4) + ' ' + (cy + 2.6) +
+                               'L' + (cx - 3.4) + ' ' + (cy + 2.6) + 'Z',
+                            fill:'none', stroke:'var(--c-poop)', 'stroke-width':1.6, 'stroke-linejoin':'round'});
+      p.style.cursor = 'pointer';
+      p.addEventListener('click', function(){
+        say('💉 ' + fmtTime(r.ts) + ' 浣腸' + (r.amount ? '／量 ' + r.amount : '') + (r.state ? '／' + r.state : ''));
+      });
+      svg.appendChild(p);
+    });
+
+    if(d.mid != null) midPts.push({x:x(d.mid - d.start), y:top + 9.5, d:d});
+  });
+
+  // 睡眠中央時刻をつないだ線。傾いていれば体内時計が動いています
+  if(midPts.length >= 2){
+    const pl = sv('polyline', {points:midPts.map(function(p){ return p.x + ',' + p.y; }).join(' '),
+                               fill:'none', stroke:'var(--text)', 'stroke-width':1.6,
+                               'stroke-linejoin':'round', opacity:0.55});
+    svg.appendChild(pl);
+  }
+  midPts.forEach(function(p){
+    const c = sv('circle', {cx:p.x, cy:p.y, r:2.6, fill:'var(--text)',
+                            stroke:'var(--card)', 'stroke-width':2});
+    c.style.cursor = 'pointer';
+    c.addEventListener('click', function(){
+      tip.textContent = '睡眠中央時刻 ' + fmtClockOffset(p.d.mid - p.d.start)
+                      + '／その日の合計 ' + fmtHM(p.d.total);
+      tip.classList.remove('idle');
+    });
+    svg.appendChild(c);
+  });
+
+  card.appendChild(svg);
+  card.appendChild(tip);
+
+  // 凡例（色だけに頼らず、形と文字でも見分けられるようにする）
+  const lg = el('div','legend');
+  const mark = function(draw, label){
+    const d = el('div');
+    const s = sv('svg', {width:14, height:14, viewBox:'0 0 14 14', 'aria-hidden':'true'});
+    draw(s);
+    d.appendChild(s);
+    d.appendChild(document.createTextNode(label));
+    return d;
+  };
+  lg.appendChild(mark(function(s){ s.appendChild(sv('rect',{x:0,y:4,width:14,height:7,rx:2.5,fill:'var(--c-sleep)'})); }, '眠っていた'));
+  lg.appendChild(mark(function(s){ s.appendChild(sv('rect',{x:0,y:6,width:14,height:3,rx:1.5,fill:'var(--c-light)'})); }, '外光'));
+  lg.appendChild(mark(function(s){ s.appendChild(sv('circle',{cx:7,cy:7,r:3.4,fill:'var(--c-poop)'})); }, 'うんち'));
+  lg.appendChild(mark(function(s){ s.appendChild(sv('path',{d:'M7 3L11 10.5L3 10.5Z',fill:'none',stroke:'var(--c-poop)','stroke-width':1.6,'stroke-linejoin':'round'})); }, '浣腸'));
+  lg.appendChild(mark(function(s){ s.appendChild(sv('circle',{cx:7,cy:7,r:2.8,fill:'var(--text)'})); }, '睡眠中央時刻'));
+  card.appendChild(lg);
+
+  return card;
+}
+
+/** 同じ内容を表でも出す（グラフが読みにくいとき、印刷して渡すとき用） */
+function dayTable(days){
+  const card = el('div','chartcard');
+  card.appendChild(el('h3', null, '日ごとの数字'));
+  card.appendChild(el('p','cap','正午から翌日の正午までを1日として数えています。横にスクロールできます。'));
+
+  const wrap = el('div','tblwrap');
+  const t = el('table','tbl');
+  const cols = ['日付','睡眠計','最長','区間','寝つき','中央時刻','うんち','うち自然','浣腸','ブリストル','外光'];
+  const thead = document.createElement('thead');
+  const hr = document.createElement('tr');
+  cols.forEach(function(c){ const th = document.createElement('th'); th.textContent = c; hr.appendChild(th); });
+  thead.appendChild(hr); t.appendChild(thead);
+
+  const tb = document.createElement('tbody');
+  days.slice().reverse().forEach(function(d){
+    const dt = new Date(d.start);
+    const row = [
+      (dt.getMonth() + 1) + '/' + dt.getDate() + '(' + WD[dt.getDay()] + ')',
+      d.blocks ? fmtHM(d.total) : '－',
+      d.blocks ? fmtHM(d.longest) : '－',
+      d.blocks ? String(d.blocks) : '－',
+      d.latency != null ? fmtHM(d.latency) : '－',
+      d.mid != null ? fmtClockOffset(d.mid - d.start) : '－',
+      String(d.poops.length),
+      String(d.natural),
+      String(d.enemas.length),
+      d.bristol != null ? d.bristol.toFixed(1) : '－',
+      d.lightMin ? d.lightMin + '分' + (d.outMin < d.lightMin ? '（外' + d.outMin + '）' : '') : '－'
+    ];
+    const tr = document.createElement('tr');
+    row.forEach(function(v){ const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
+    tb.appendChild(tr);
+  });
+  t.appendChild(tb);
+  wrap.appendChild(t);
+  card.appendChild(wrap);
+  return card;
+}
+
 function renderAll(){
   renderNotice(); renderHero(); renderButtons(); renderStats();
   renderChips(); renderHistory(); renderDiary(); renderSyncBadge();
+  renderRangeChips(); renderSummary();
 }
 
 /* ==================== 記録の追加・編集 ==================== */
@@ -1428,8 +1983,15 @@ function newId(){
   return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,9);
 }
 
+function blankRec(typeId, ts){
+  const r = {id:newId(), type:typeId, ts:ts, memo:'', by:cfg.name || '',
+             updatedAt:Date.now(), deleted:false, dirty:true};
+  ATTR_FIELDS.forEach(function(f){ r[f] = ''; });
+  return r;
+}
+
 function quickAdd(typeId){
-  const rec = {id:newId(), type:typeId, ts:Date.now(), memo:'', by:cfg.name || '', updatedAt:Date.now(), deleted:false, dirty:true};
+  const rec = blankRec(typeId, Date.now());
   records.push(rec);
   persistRecords(); renderAll(); scheduleSync();
   const t = typeOf(typeId);
@@ -1437,6 +1999,97 @@ function quickAdd(typeId){
 }
 
 let editingId = null;
+/** 編集中の追加項目。保存を押すまでは記録本体に書き込まない */
+let draftAttrs = {};
+
+/* ---------- 追加項目の入力欄 ---------- */
+
+const BRISTOL_HINT = [
+  '', 'コロコロ', '硬い塊', 'ややひび割れ', 'なめらか', 'やわらかい塊', '泥状', '水様'
+];
+
+/** 選択肢のボタン列をつくる。同じものをもう一度押すと解除される */
+function optionRow(field, choices){
+  const box = el('div','opts');
+  choices.forEach(function(c){
+    const b = el('button','opt' + (draftAttrs[field] === c ? ' on' : ''), c);
+    b.type = 'button';
+    b.addEventListener('click', function(){
+      draftAttrs[field] = (draftAttrs[field] === c) ? '' : c;
+      renderAttrs();
+    });
+    box.appendChild(b);
+  });
+  return box;
+}
+
+function renderAttrs(){
+  const host = $('#mAttrs');
+  host.innerHTML = '';
+  const spec = ATTR_SPEC[$('#mType').value];
+  if(!spec) return;
+
+  if(spec.bristol){
+    const f = el('div','field');
+    f.appendChild(el('label', null, '便のかたさ（ブリストルスケール）'));
+    const box = el('div','opts bristol');
+    for(let i = 1; i <= 7; i++){
+      const on = String(draftAttrs.bristol) === String(i);
+      const b = el('button','opt' + (on ? ' on' : ''), String(i));
+      b.type = 'button';
+      b.setAttribute('aria-label', i + '：' + BRISTOL_HINT[i]);
+      b.addEventListener('click', function(){
+        draftAttrs.bristol = on ? '' : i;
+        renderAttrs();
+      });
+      box.appendChild(b);
+    }
+    f.appendChild(box);
+    const cur = Number(draftAttrs.bristol);
+    f.appendChild(el('p','bhint', (cur >= 1 && cur <= 7)
+      ? cur + '：' + BRISTOL_HINT[cur]
+      : '1 コロコロ ／ 3〜4 ふつう ／ 6 泥状 ／ 7 水様'));
+    host.appendChild(f);
+  }
+
+  if(spec.amount){
+    const f = el('div','field');
+    f.appendChild(el('label', null, '量'));
+    f.appendChild(optionRow('amount', spec.amount));
+    host.appendChild(f);
+  }
+
+  if(spec.place){
+    const f = el('div','field');
+    f.appendChild(el('label', null, '場所'));
+    f.appendChild(optionRow('place', spec.place));
+    f.appendChild(el('p','bhint','屋外・窓ぎわ・室内では、実際の明るさが10倍以上ちがいます。'));
+    host.appendChild(f);
+  }
+
+  if(spec.value){
+    const v = spec.value;
+    const f = el('div','field');
+    f.appendChild(el('label', null, v.label));
+    const row = el('div','vrow');
+    const inp = document.createElement('input');
+    inp.type = 'number'; inp.step = String(v.step); inp.inputMode = 'decimal';
+    inp.placeholder = v.placeholder || '';
+    inp.value = (draftAttrs.value === '' || draftAttrs.value == null) ? '' : draftAttrs.value;
+    inp.addEventListener('input', function(){ draftAttrs.value = this.value.trim(); });
+    row.appendChild(inp);
+    row.appendChild(el('span','unit', v.unit));
+    f.appendChild(row);
+    host.appendChild(f);
+  }
+
+  if(spec.state){
+    const f = el('div','field');
+    f.appendChild(el('label', null, 'ようす'));
+    f.appendChild(optionRow('state', spec.state));
+    host.appendChild(f);
+  }
+}
 
 function openModal(id){
   editingId = id;
@@ -1448,6 +2101,9 @@ function openModal(id){
     sel.appendChild(o);
   });
 
+  draftAttrs = {};
+  ATTR_FIELDS.forEach(function(f){ draftAttrs[f] = ''; });
+
   if(id){
     const r = findRec(id);
     if(!r) return;
@@ -1455,6 +2111,7 @@ function openModal(id){
     sel.value = r.type;
     $('#mTime').value = toInputValue(r.ts);
     $('#mMemo').value = r.memo || '';
+    ATTR_FIELDS.forEach(function(f){ draftAttrs[f] = (r[f] == null ? '' : r[f]); });
     $('#mDelete').hidden = false;
   }else{
     $('#modalTitle').textContent = '日時を指定して記録';
@@ -1463,22 +2120,34 @@ function openModal(id){
     $('#mMemo').value = '';
     $('#mDelete').hidden = true;
   }
+  renderAttrs();
   $('#modal').hidden = false;
 }
 function closeModal(){ $('#modal').hidden = true; editingId = null; }
+
+// 種類を変えたら、その種類の入力欄に切り替える
+$('#mType').addEventListener('change', function(){
+  const spec = ATTR_SPEC[this.value] || {};
+  // 新しい種類で使わない項目は消す（うんち→体温 に変えたときにブリストルが残らないように）
+  if(!spec.bristol) draftAttrs.bristol = '';
+  if(!spec.amount)  draftAttrs.amount  = '';
+  if(!spec.state)   draftAttrs.state   = '';
+  if(!spec.place)   draftAttrs.place   = '';
+  if(!spec.value)   draftAttrs.value   = '';
+  renderAttrs();
+});
 
 $('#mSave').addEventListener('click', function(){
   const ts = fromInputValue($('#mTime').value);
   if(ts == null){ alert('日時を入力してください'); return; }
   const type = $('#mType').value;
   const memo = $('#mMemo').value.trim();
-  if(editingId){
-    const r = findRec(editingId);
-    if(r){ r.type = type; r.ts = ts; r.memo = memo; touch(r); }
-  }else{
-    const r = {id:newId(), type:type, ts:ts, memo:memo, by:cfg.name || '', updatedAt:Date.now(), deleted:false, dirty:true};
-    records.push(r);
-  }
+  const r = editingId ? findRec(editingId) : blankRec(type, ts);
+  if(!r) return;
+  r.type = type; r.ts = ts; r.memo = memo;
+  ATTR_FIELDS.forEach(function(f){ r[f] = draftAttrs[f] == null ? '' : draftAttrs[f]; });
+  if(!editingId) records.push(r);
+  touch(r);
   persistRecords(); closeModal(); renderAll(); scheduleSync();
   showToast('保存しました');
 });
@@ -1616,12 +2285,13 @@ function hideToast(){ $('#toast').hidden = true; }
 document.querySelectorAll('nav.tabbar button').forEach(function(b){
   b.addEventListener('click', function(){
     document.querySelectorAll('nav.tabbar button').forEach(function(x){ x.classList.toggle('on', x === b); });
-    ['record','diary','history','settings'].forEach(function(v){
+    ['record','diary','history','summary','settings'].forEach(function(v){
       $('#view-' + v).hidden = (v !== b.dataset.tab);
     });
     if(b.dataset.tab === 'settings'){ renderSettings(); renderSyncPanel(); renderLockPanel(); }
     if(b.dataset.tab === 'history'){ renderChips(); renderHistory(); }
     if(b.dataset.tab === 'diary'){ renderDiary(); }
+    if(b.dataset.tab === 'summary'){ renderRangeChips(); renderSummary(); }
     window.scrollTo(0,0);
   });
 });
@@ -1629,7 +2299,7 @@ $('#syncBadge').addEventListener('click', function(){
   if(syncEnabled()) syncNow(true);
   else openSettings();
 });
-function openSettings(){ document.querySelectorAll('nav.tabbar button')[3].click(); }
+function openSettings(){ document.querySelector('nav.tabbar button[data-tab="settings"]').click(); }
 
 /* ==================== 設定の操作 ==================== */
 $('#pinSel').addEventListener('change', function(){
@@ -1646,7 +2316,7 @@ $('#addType').addEventListener('click', function(){
   showToast('「' + label + '」を追加しました');
 });
 $('#exportBtn').addEventListener('click', function(){
-  const data = {app:'ikuji-kiroku', version:3, exportedAt:new Date().toISOString(),
+  const data = {app:'ikuji-kiroku', version:4, exportedAt:new Date().toISOString(),
                 types:types, pinned:pinned, records:live(), diary:liveDiary()};
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
