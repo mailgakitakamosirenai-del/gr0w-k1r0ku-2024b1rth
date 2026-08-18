@@ -412,6 +412,15 @@
     </div>
 
     <div class="card">
+      <label>まとめタブが数えるボタン</label>
+      <div id="roleAdmin"></div>
+      <p class="hint">
+        同じ名前のボタンを自分で作っていた場合など、集計が別のボタンを見ていることがあります。
+        まとめタブに記録が出てこないときは、ここで実際に押しているボタンを選んでください。
+      </p>
+    </div>
+
+    <div class="card">
       <label>ボタンの表示／非表示</label>
       <div id="typeAdmin"></div>
       <div class="row2 gap12">
@@ -443,6 +452,15 @@
         深夜に寝て翌朝に起きるリズムでも、ひと晩がふたつに割れないようにするためです。<br>
         ・電波がなくても記録できます。つながり次第、自動で家族に送信されます。<br>
         ・ブラウザのメニューから「ホーム画面に追加」すると、アプリのように起動できます。
+      </p>
+    </div>
+
+    <div class="card">
+      <label>このアプリについて</label>
+      <p class="hint" style="margin-top:0" id="verLine"></p>
+      <p class="hint">
+        直したはずの機能が出てこないときは、上の「版」と「配信元」をご確認ください。
+        パソコンとスマホで配信元が違うと、片方だけ古いままになります。
       </p>
     </div>
   </section>
@@ -525,6 +543,13 @@
 (function(){
 'use strict';
 
+/**
+ * アプリの版。index.html を直したら、ここも書き換えてください。
+ * 設定タブの「このアプリについて」に出るので、
+ * どの端末が古いままなのかを、画面を見るだけで判断できます。
+ */
+const APP_VERSION = '2026-08-18b';
+
 /* ==================== 保存領域 ==================== */
 const K_REC = 'ikuji.records.v2';
 const K_REC_OLD = 'ikuji.records.v1';
@@ -532,6 +557,22 @@ const K_DIARY = 'ikuji.diary.v1';
 const K_TYP = 'ikuji.types.v1';
 const K_PIN = 'ikuji.pinned.v1';
 const K_CFG = 'ikuji.sync.v1';
+const K_ROLE = 'ikuji.roles.v1';
+
+/**
+ * まとめタブが、どのボタンを何として数えるか。
+ *
+ * ふつうは既定のボタン（sleep / wake / …）をそのまま使いますが、
+ * 同じ名前のボタンをご自分で作っていた場合、そちらには別の識別子が付いています。
+ * そのままでは集計が空になってしまうので、設定タブで割り当てを変えられるようにしています。
+ */
+const ROLE_LABELS = {
+  sleep: '眠りはじめ（ねんね）',
+  wake:  '目が覚めた（起きた）',
+  bedin: 'ふとんに入った',
+  light: '外光を浴びた'
+};
+const DEFAULT_ROLES = {sleep:'sleep', wake:'wake', bedin:'bedin', light:'light'};
 
 const DEFAULT_TYPES = [
   {id:'poop',  label:'うんち',   emoji:'💩', on:true},
@@ -600,8 +641,19 @@ let diary   = load(K_DIARY, []);
 let types   = load(K_TYP, DEFAULT_TYPES);
 let pinned  = load(K_PIN, 'poop');
 let cfg     = load(K_CFG, {url:'', secret:'', name:'', lastSv:0, lastSvDiary:0});
+let roles   = Object.assign({}, DEFAULT_ROLES, load(K_ROLE, {}));
 let filter  = 'all';
 let diaryQuery = '';
+
+/** 役割（眠りはじめ など）に割り当てられた、実際のボタンの識別子 */
+function roleId(key){ return roles[key] || DEFAULT_ROLES[key]; }
+/** 逆引き。割り当てられたボタンなら、役割の名前に読み替える */
+function canonicalType(typeId){
+  for(const k in roles){ if(roles[k] === typeId) return k; }
+  return typeId;
+}
+/** その種類で使える追加項目。割り当てを変えても入力欄が出るようにする */
+function attrSpecOf(typeId){ return ATTR_SPEC[canonicalType(typeId)] || ATTR_SPEC[typeId] || null; }
 
 // v1 からの移行
 if(records === null){
@@ -1281,7 +1333,7 @@ function renderStats(){
 
 /** 履歴に出す、追加項目の小さなラベル */
 function attrTags(r){
-  const spec = ATTR_SPEC[r.type] || {};
+  const spec = attrSpecOf(r.type) || {};
   const out = [];
   const b = Number(r.bristol);
   if(b >= 1 && b <= 7) out.push('ブリストル ' + b + '（' + BRISTOL_HINT[b] + '）');
@@ -1369,7 +1421,91 @@ function renderHistory(){
   });
 }
 
+/** 「どの版が、どこから配信されているか」を設定タブに出す */
+function renderVersion(){
+  const host = $('#verLine');
+  if(!host) return;
+  const origin = inGas
+    ? 'Apps Script（script.google.com）'
+    : (location.protocol === 'file:' ? 'このパソコンのファイル' : location.host);
+  host.innerHTML = '';
+  host.appendChild(el('b', null, '版：' + APP_VERSION));
+  host.appendChild(document.createElement('br'));
+  host.appendChild(document.createTextNode('配信元：' + origin));
+  if(!inGas && 'serviceWorker' in navigator){
+    host.appendChild(document.createElement('br'));
+    const btn = el('button','mini','最新の画面を取り直す');
+    btn.type = 'button';
+    btn.style.marginTop = '8px';
+    btn.addEventListener('click', function(){
+      // 端末に残っている画面のキャッシュを捨ててから読み込み直す。
+      // 記録そのものは別の場所（localStorage とスプレッドシート）にあるので消えません。
+      const jobs = [];
+      if(window.caches) jobs.push(caches.keys().then(function(ks){
+        return Promise.all(ks.map(function(k){ return caches.delete(k); }));
+      }));
+      jobs.push(navigator.serviceWorker.getRegistrations().then(function(rs){
+        return Promise.all(rs.map(function(r){ return r.unregister(); }));
+      }));
+      Promise.all(jobs).catch(function(){}).then(function(){
+        location.reload();
+      });
+    });
+    host.appendChild(btn);
+  }
+}
+
+/** 「まとめタブが数えるボタン」の割り当て */
+function renderRoleAdmin(){
+  const host = $('#roleAdmin');
+  if(!host) return;
+  host.innerHTML = '';
+
+  Object.keys(ROLE_LABELS).forEach(function(key){
+    const wrap = el('div');
+    wrap.style.marginBottom = '10px';
+    wrap.appendChild(el('label', null, ROLE_LABELS[key]));
+
+    const sel = document.createElement('select');
+    types.forEach(function(t){
+      const o = document.createElement('option');
+      const n = live().filter(function(r){ return r.type === t.id; }).length;
+      o.value = t.id;
+      o.textContent = t.emoji + ' ' + t.label + (n ? '（' + n + '件）' : '');
+      if(t.id === roleId(key)) o.selected = true;
+      sel.appendChild(o);
+    });
+    // 割り当て先のボタンが消されている場合に備えて、今の値も候補に残す
+    if(!types.some(function(t){ return t.id === roleId(key); })){
+      const o = document.createElement('option');
+      o.value = roleId(key); o.textContent = '（無いボタン：' + roleId(key) + '）';
+      o.selected = true;
+      sel.appendChild(o);
+    }
+    sel.addEventListener('change', function(){
+      roles[key] = this.value;
+      save(K_ROLE, roles);
+      renderRoleAdmin(); renderSummary();
+      showToast(ROLE_LABELS[key] + ' を「' + typeOf(this.value).label + '」にしました');
+    });
+    wrap.appendChild(sel);
+    host.appendChild(wrap);
+  });
+
+  const reset = el('button','mini','既定に戻す');
+  reset.type = 'button';
+  reset.addEventListener('click', function(){
+    roles = Object.assign({}, DEFAULT_ROLES);
+    save(K_ROLE, roles);
+    renderRoleAdmin(); renderSummary();
+    showToast('既定に戻しました');
+  });
+  host.appendChild(reset);
+}
+
 function renderSettings(){
+  renderVersion();
+  renderRoleAdmin();
   const sel = $('#pinSel');
   sel.innerHTML = '';
   types.forEach(function(t){
@@ -1587,13 +1723,13 @@ function dayAnchor(ts){
 /** 「ねんね」と「起きた」を組にして、眠っていた区間の一覧をつくる */
 function sleepSpans(){
   const evs = live()
-    .filter(function(r){ return r.type === 'sleep' || r.type === 'wake'; })
+    .filter(function(r){ return r.type === roleId('sleep') || r.type === roleId('wake'); })
     .sort(function(a,b){ return a.ts - b.ts; });
 
   const spans = [];
   let open = null;
   evs.forEach(function(r){
-    if(r.type === 'sleep'){ if(!open) open = r; }        // 「ねんね」が続いたら最初のものを採る
+    if(r.type === roleId('sleep')){ if(!open) open = r; }   // 「ねんね」が続いたら最初のものを採る
     else if(open){ spans.push({from:open.ts, to:r.ts}); open = null; }
   });
   if(open) spans.push({from:open.ts, to:Date.now(), running:true});   // いま眠っている最中
@@ -1629,7 +1765,7 @@ function summarize(nDays){
     let latency = null;
     if(firstNight){
       const beds = recs.filter(function(r){
-        return r.type === 'bedin' && r.ts <= firstNight.from && r.ts > firstNight.from - 6 * HOUR;
+        return r.type === roleId('bedin') && r.ts <= firstNight.from && r.ts > firstNight.from - 6 * HOUR;
       }).sort(function(a,b){ return b.ts - a.ts; });
       if(beds.length) latency = firstNight.from - beds[0].ts;
     }
@@ -1642,7 +1778,7 @@ function summarize(nDays){
     });
     const bs = poops.map(function(p){ return Number(p.bristol); }).filter(function(v){ return v >= 1 && v <= 7; });
 
-    const lights = recs.filter(function(r){ return r.type === 'light' && inDay(r); });
+    const lights = recs.filter(function(r){ return r.type === roleId('light') && inDay(r); });
     const sumMin = function(list){ return list.reduce(function(a,r){ return a + (Number(r.value) || 0); }, 0); };
 
     out.push({
@@ -1696,6 +1832,76 @@ function renderRangeChips(){
   });
 }
 
+/**
+ * 睡眠が集計できないときの案内。
+ * 「記録がありません」で終わらせず、集計が実際に何を見て何件見つけたかを出します。
+ * 同じ名前のボタンを自分で作っていた場合など、原因がこれで分かります。
+ */
+function noSleepGuide(days){
+  const g = el('div','guide');
+  const from = days.length ? days[0].start : Date.now();
+  const seen = {};
+  live().forEach(function(r){ seen[r.type] = (seen[r.type] || 0) + 1; });
+  const inRange = function(id){
+    return live().filter(function(r){ return r.type === id && r.ts >= from; }).length;
+  };
+
+  const nSleep = inRange(roleId('sleep')), nWake = inRange(roleId('wake'));
+
+  g.appendChild(el('b', null, nSleep || nWake
+    ? '「ねんね」と「起きた」が組になっていません'
+    : 'まとめが数えているボタンに、記録がありません'));
+
+  const p1 = el('p', null, '集計はいま、次のボタンを見ています。');
+  p1.style.margin = '10px 0 0';
+  g.appendChild(p1);
+
+  const box = el('div');
+  box.style.margin = '8px 0 0';
+  [['sleep', nSleep], ['wake', nWake]].forEach(function(pair){
+    const t = typeOf(roleId(pair[0]));
+    const row = el('div', null, '　' + ROLE_LABELS[pair[0]] + ' → ' + t.emoji + ' ' + t.label
+      + '（直近' + days.length + '日で ' + pair[1] + '件）');
+    row.style.color = pair[1] ? 'var(--text)' : 'var(--danger)';
+    box.appendChild(row);
+  });
+  g.appendChild(box);
+
+  if(!nSleep && !nWake){
+    // 記録がある種別を出す。名前は同じでも中身が別のボタンだった、という食い違いが見える
+    const others = Object.keys(seen)
+      .map(function(id){ return {t:typeOf(id), n:seen[id]}; })
+      .sort(function(a,b){ return b.n - a.n; })
+      .slice(0, 8)
+      .map(function(x){ return x.t.emoji + ' ' + x.t.label + ' ' + x.n + '件'; });
+
+    const p2 = el('p', null, others.length
+      ? '実際に記録があるのは次のボタンです：' + others.join('／')
+      : 'この端末には、まだ記録がありません。');
+    p2.style.margin = '12px 0 0';
+    g.appendChild(p2);
+
+    const p3 = el('p', null, '押しているボタンが上の一覧にあるのに集計が0件なら、'
+      + '同じ名前の別のボタンです。設定タブの「まとめタブが数えるボタン」で、'
+      + '実際に押しているほうを選んでください。');
+    p3.style.margin = '10px 0 0';
+    g.appendChild(p3);
+
+    const btn = el('button','btn sub','設定を開く');
+    btn.type = 'button';
+    btn.style.marginTop = '12px';
+    btn.addEventListener('click', openSettings);
+    g.appendChild(btn);
+  }else{
+    const p2 = el('p', null, '眠りはじめに「ねんね」、目が覚めたら「起きた」を押して、'
+      + '2つが対になると帯が描かれます。片方だけだと、まだ形になりません。'
+      + '（いま眠っている最中の場合は、現在時刻までを仮に描きます）');
+    p2.style.margin = '12px 0 0';
+    g.appendChild(p2);
+  }
+  return g;
+}
+
 function renderSummary(){
   const host = $('#summaryBody');
   if(!host) return;
@@ -1705,13 +1911,7 @@ function renderSummary(){
   const withSleep = days.filter(function(d){ return d.blocks > 0; });
 
   if(!withSleep.length){
-    const g = el('div','guide');
-    g.appendChild(el('b', null, 'まだ睡眠の記録がありません'));
-    const p = el('p', null, '設定タブの「ボタンの表示／非表示」で 😴 ねんね ／ ☀️ 起きた ／ 🛏️ ふとんへ ／ 🌞 外光 を表示にしてください。'
-      + '眠りはじめに「ねんね」、目が覚めたら「起きた」を押すと、ここに眠りの形が出てきます。');
-    p.style.margin = '10px 0 0';
-    g.appendChild(p);
-    host.appendChild(g);
+    host.appendChild(noSleepGuide(days));
     return;
   }
 
@@ -2026,7 +2226,7 @@ function optionRow(field, choices){
 function renderAttrs(){
   const host = $('#mAttrs');
   host.innerHTML = '';
-  const spec = ATTR_SPEC[$('#mType').value];
+  const spec = attrSpecOf($('#mType').value);
   if(!spec) return;
 
   if(spec.bristol){
@@ -2127,7 +2327,7 @@ function closeModal(){ $('#modal').hidden = true; editingId = null; }
 
 // 種類を変えたら、その種類の入力欄に切り替える
 $('#mType').addEventListener('change', function(){
-  const spec = ATTR_SPEC[this.value] || {};
+  const spec = attrSpecOf(this.value) || {};
   // 新しい種類で使わない項目は消す（うんち→体温 に変えたときにブリストルが残らないように）
   if(!spec.bristol) draftAttrs.bristol = '';
   if(!spec.amount)  draftAttrs.amount  = '';
